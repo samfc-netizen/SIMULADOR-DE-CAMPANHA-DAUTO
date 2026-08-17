@@ -167,6 +167,78 @@
     font-weight:700;
   }
 
+
+  .wpp-image-tools{
+    margin:12px 0;
+    padding:12px;
+    border:1px solid #3d4046;
+    border-radius:10px;
+    background:#1d1f23;
+  }
+  .wpp-image-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  .wpp-file-label{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:0;
+    padding:11px 8px;
+    border-radius:9px;
+    background:#34373d;
+    color:#fff;
+    font-size:12px;
+    font-weight:800;
+    text-transform:none;
+    letter-spacing:0;
+    cursor:pointer;
+    text-align:center;
+  }
+  #imagemProduto{display:none}
+  .wpp-url{
+    margin-top:8px;
+    font-size:13px;
+    padding:11px 12px;
+  }
+  .wpp-preview{
+    display:none;
+    margin-top:10px;
+    background:#fff;
+    border-radius:10px;
+    overflow:hidden;
+    padding:8px;
+  }
+  .wpp-preview img{
+    width:100%;
+    max-height:230px;
+    object-fit:contain;
+    display:block;
+    background:#fff;
+  }
+  .wpp-image-status{
+    margin-top:7px;
+    min-height:16px;
+    color:#aeb3bb;
+    font-size:11px;
+    line-height:1.35;
+  }
+  .btn-share{
+    width:100%;
+    margin-top:8px;
+    background:#128c7e;
+    color:#fff;
+  }
+  .btn-remove-image{
+    width:100%;
+    margin-top:8px;
+    background:#34373d;
+    color:#fff;
+    padding:10px;
+    font-size:12px;
+  }
+
   .hint{
     font-size:12px;
     color:#aeb3bb;
@@ -430,9 +502,28 @@
     <div class="wpp-box">
       <div class="wpp-title">💬 Campanha para WhatsApp</div>
       <div class="wpp-subtitle">Gere uma mensagem promocional usando o produto e os preços preenchidos acima.</div>
+
+      <div class="wpp-image-tools">
+        <div class="wpp-subtitle" style="margin-bottom:9px">
+          Imagem do produto — use um arquivo do aparelho ou cole o link direto de uma imagem da web.
+        </div>
+        <div class="wpp-image-row">
+          <label class="wpp-file-label" for="imagemProduto">📁 Escolher imagem</label>
+          <button type="button" class="btn-clear" style="padding:11px 8px;font-size:12px" onclick="colarImagemClipboard()">📋 Colar imagem</button>
+        </div>
+        <input id="imagemProduto" type="file" accept="image/*">
+        <input id="imagemUrl" class="wpp-url" type="url" placeholder="🔗 Ou cole a URL direta da imagem">
+        <div class="wpp-preview" id="wppPreview">
+          <img id="wppPreviewImg" alt="Imagem do produto">
+        </div>
+        <button type="button" class="btn-remove-image" id="btnRemoverImagem" style="display:none" onclick="removerImagem()">Remover imagem</button>
+        <div class="wpp-image-status" id="wppImageStatus">Nenhuma imagem selecionada.</div>
+      </div>
+
       <button class="btn-wpp" onclick="gerarWhatsApp()">🔥 Gerar texto WhatsApp</button>
       <textarea id="textoWpp" placeholder="O texto promocional aparecerá aqui..."></textarea>
       <button class="btn-copy" onclick="copiarWhatsApp()">📋 Copiar texto</button>
+      <button class="btn-share" onclick="compartilharWhatsApp()">📲 Compartilhar imagem + texto</button>
       <div class="copy-status" id="copyStatus"></div>
     </div>
 
@@ -594,6 +685,156 @@
   [produto, precoDe, precoPor, rodape].forEach(el => {
     el.addEventListener('input', atualizar);
   });
+
+
+  let imagemWppFile = null;
+  let imagemWppObjectUrl = null;
+
+  const imagemProduto = document.getElementById('imagemProduto');
+  const imagemUrl = document.getElementById('imagemUrl');
+  const wppPreview = document.getElementById('wppPreview');
+  const wppPreviewImg = document.getElementById('wppPreviewImg');
+  const wppImageStatus = document.getElementById('wppImageStatus');
+  const btnRemoverImagem = document.getElementById('btnRemoverImagem');
+
+  function mostrarImagem(src, status){
+    wppPreviewImg.src = src;
+    wppPreview.style.display = 'block';
+    btnRemoverImagem.style.display = 'block';
+    wppImageStatus.textContent = status || 'Imagem pronta para compartilhar.';
+  }
+
+  imagemProduto.addEventListener('change', function(){
+    const file = this.files && this.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      wppImageStatus.textContent = 'Selecione um arquivo de imagem válido.';
+      return;
+    }
+    imagemWppFile = file;
+    imagemUrl.value = '';
+    if(imagemWppObjectUrl) URL.revokeObjectURL(imagemWppObjectUrl);
+    imagemWppObjectUrl = URL.createObjectURL(file);
+    mostrarImagem(imagemWppObjectUrl, 'Imagem carregada do aparelho.');
+  });
+
+  imagemUrl.addEventListener('change', carregarImagemUrl);
+  imagemUrl.addEventListener('blur', carregarImagemUrl);
+
+  function carregarImagemUrl(){
+    const url = imagemUrl.value.trim();
+    if(!url) return;
+    imagemWppFile = null;
+    wppPreviewImg.onload = () => {
+      wppPreview.style.display = 'block';
+      btnRemoverImagem.style.display = 'block';
+      wppImageStatus.textContent = 'Imagem carregada pela URL. Para compartilhar o arquivo junto, o site de origem precisa permitir acesso à imagem.';
+    };
+    wppPreviewImg.onerror = () => {
+      wppPreview.style.display = 'none';
+      wppImageStatus.textContent = 'Não foi possível carregar essa URL. Tente o link direto da imagem ou faça upload.';
+    };
+    wppPreviewImg.src = url;
+  }
+
+  async function colarImagemClipboard(){
+    try{
+      if(!navigator.clipboard || !navigator.clipboard.read){
+        wppImageStatus.textContent = 'Seu navegador não permite colar imagens diretamente. Use “Escolher imagem”.';
+        return;
+      }
+      const items = await navigator.clipboard.read();
+      for(const item of items){
+        const type = item.types.find(t => t.startsWith('image/'));
+        if(type){
+          const blob = await item.getType(type);
+          const ext = type.split('/')[1] || 'png';
+          imagemWppFile = new File([blob], `produto.${ext}`, {type});
+          imagemUrl.value = '';
+          if(imagemWppObjectUrl) URL.revokeObjectURL(imagemWppObjectUrl);
+          imagemWppObjectUrl = URL.createObjectURL(imagemWppFile);
+          mostrarImagem(imagemWppObjectUrl, 'Imagem colada da área de transferência.');
+          return;
+        }
+      }
+      wppImageStatus.textContent = 'Não encontrei uma imagem na área de transferência.';
+    }catch(e){
+      wppImageStatus.textContent = 'O navegador bloqueou a leitura da área de transferência. Use “Escolher imagem”.';
+    }
+  }
+
+  function removerImagem(){
+    imagemWppFile = null;
+    imagemProduto.value = '';
+    imagemUrl.value = '';
+    if(imagemWppObjectUrl){
+      URL.revokeObjectURL(imagemWppObjectUrl);
+      imagemWppObjectUrl = null;
+    }
+    wppPreviewImg.removeAttribute('src');
+    wppPreview.style.display = 'none';
+    btnRemoverImagem.style.display = 'none';
+    wppImageStatus.textContent = 'Nenhuma imagem selecionada.';
+  }
+
+  async function arquivoDaUrl(){
+    const url = imagemUrl.value.trim();
+    if(!url) return null;
+    try{
+      const resp = await fetch(url, {mode:'cors'});
+      if(!resp.ok) throw new Error('HTTP');
+      const blob = await resp.blob();
+      if(!blob.type.startsWith('image/')) throw new Error('not-image');
+      const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+      return new File([blob], `produto.${ext}`, {type:blob.type});
+    }catch(e){
+      return null;
+    }
+  }
+
+  async function compartilharWhatsApp(){
+    gerarWhatsApp();
+    const texto = document.getElementById('textoWpp').value.trim();
+    let file = imagemWppFile;
+
+    if(!file && imagemUrl.value.trim()){
+      wppImageStatus.textContent = 'Preparando imagem da web...';
+      file = await arquivoDaUrl();
+    }
+
+    try{
+      if(file && navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({
+          files:[file],
+          text:texto,
+          title:'Oferta Dauto Tintas'
+        });
+        wppImageStatus.textContent = 'Compartilhamento aberto. Escolha o WhatsApp.';
+        return;
+      }
+
+      if(navigator.share && !file){
+        await navigator.share({
+          text:texto,
+          title:'Oferta Dauto Tintas'
+        });
+        return;
+      }
+
+      await navigator.clipboard.writeText(texto);
+      if(file){
+        wppImageStatus.textContent = 'Seu navegador não compartilha imagem + texto juntos. O texto foi copiado; envie a imagem no WhatsApp e cole a legenda.';
+      }else if(imagemUrl.value.trim()){
+        wppImageStatus.textContent = 'A imagem da web não pôde ser anexada por bloqueio do site de origem. O texto foi copiado.';
+      }else{
+        wppImageStatus.textContent = 'Texto copiado. Abra o WhatsApp e cole a mensagem.';
+      }
+    }catch(e){
+      if(e && e.name === 'AbortError') return;
+      try{ await navigator.clipboard.writeText(texto); }catch(_){}
+      wppImageStatus.textContent = 'Não foi possível abrir o compartilhamento. O texto ficou pronto para copiar.';
+    }
+  }
 
   atualizar();
 </script>
