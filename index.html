@@ -454,6 +454,11 @@
   }
 
   @media print{
+    html, body, .sheet, .top-strip, .promo-badge, .por-label, .new-price-box, .discount, .footer, .old-price::after {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
     body{background:white}
     .sidebar{display:none!important}
     .app{display:block}
