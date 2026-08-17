@@ -477,6 +477,11 @@
     }
   }
 </style>
+
+<!-- Geração direta de PDF no navegador -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
 <body>
 
@@ -500,7 +505,8 @@
     <input id="rodape" type="text" value="Oferta válida enquanto durarem os estoques." placeholder="Ex.: Consulte condições.">
 
     <div class="buttons">
-      <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar em PDF</button>
+      <button class="btn-print" id="btnPdf" onclick="gerarPdfDireto()">📄 Baixar PDF do cartaz</button>
+      <div id="pdfStatus" class="copy-status" style="color:#ffd60a"></div>
       <button class="btn-clear" onclick="limpar()">Limpar campos</button>
     </div>
 
@@ -533,8 +539,7 @@
     </div>
 
     <div class="hint">
-      Na tela de impressão, escolha papel <strong>A4</strong>, orientação <strong>Retrato</strong>,
-      margens <strong>Nenhuma</strong> e ative a impressão de <strong>gráficos de fundo</strong>.
+      Use <strong>Baixar PDF do cartaz</strong>. O PDF é gerado diretamente pelo navegador, preservando as cores e fundos do cartaz, inclusive no celular.
     </div>
   </aside>
 
@@ -838,6 +843,97 @@
       if(e && e.name === 'AbortError') return;
       try{ await navigator.clipboard.writeText(texto); }catch(_){}
       wppImageStatus.textContent = 'Não foi possível abrir o compartilhamento. O texto ficou pronto para copiar.';
+    }
+  }
+
+  async function gerarPdfDireto(){
+    const btn = document.getElementById('btnPdf');
+    const status = document.getElementById('pdfStatus');
+    const cartaz = document.getElementById('cartaz');
+
+    if(!window.html2canvas || !window.jspdf){
+      status.textContent = 'Não foi possível carregar o gerador de PDF. Verifique a internet e tente novamente.';
+      return;
+    }
+
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Gerando PDF...';
+    status.textContent = 'Preparando cartaz em alta resolução...';
+
+    try{
+      // Clona o A4 fora da área visível para evitar interferência de zoom/layout mobile.
+      const clone = cartaz.cloneNode(true);
+      clone.id = 'cartaz-pdf-temp';
+      Object.assign(clone.style, {
+        position:'fixed',
+        left:'-10000px',
+        top:'0',
+        width:'210mm',
+        height:'297mm',
+        minWidth:'210mm',
+        maxWidth:'210mm',
+        transform:'none',
+        margin:'0',
+        boxShadow:'none',
+        zIndex:'-9999',
+        overflow:'hidden',
+        background:'#ffffff'
+      });
+      document.body.appendChild(clone);
+
+      // Aguarda fontes/imagens antes da captura.
+      if(document.fonts && document.fonts.ready){
+        try{ await document.fonts.ready; }catch(_){ }
+      }
+      const imgs = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      })));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: clone.scrollWidth,
+        height: clone.scrollHeight,
+        windowWidth: clone.scrollWidth,
+        windowHeight: clone.scrollHeight
+      });
+
+      clone.remove();
+      status.textContent = 'Montando PDF A4...';
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+      });
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+
+      const produto = (document.getElementById('produto').value || 'cartaz')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/[^a-zA-Z0-9]+/g,'_')
+        .replace(/^_+|_+$/g,'')
+        .toUpperCase();
+      pdf.save(`CARTAZ_${produto || 'PROMOCIONAL'}.pdf`);
+
+      status.textContent = '✅ PDF gerado com cores e fundos.';
+    }catch(err){
+      console.error(err);
+      const temp = document.getElementById('cartaz-pdf-temp');
+      if(temp) temp.remove();
+      status.textContent = 'Erro ao gerar o PDF. Atualize a página e tente novamente.';
+    }finally{
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
     }
   }
 
