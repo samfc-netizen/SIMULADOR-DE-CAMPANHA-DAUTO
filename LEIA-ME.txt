@@ -1,0 +1,18 @@
+DAUTO PROMO - PWA PARA GITHUB PAGES
+
+1. Envie TODOS os arquivos e a pasta icons para a raiz do repositório.
+2. O arquivo principal deve se chamar index.html.
+3. Em GitHub > Settings > Pages, publique a branch desejada pela raiz (/ root).
+4. Abra a URL HTTPS do GitHub Pages.
+5. Android/Chrome: menu > Instalar app / Adicionar à tela inicial.
+6. iPhone/Safari: Compartilhar > Adicionar à Tela de Início.
+
+IMPORTANTE SOBRE ATUALIZAÇÕES
+- O service worker usa versão de cache. Quando fizer alterações grandes e quiser forçar renovação do cache, altere CACHE_VERSION em service-worker.js (ex.: v1.0.1).
+- O index usa estratégia network-first, então versões novas normalmente são buscadas automaticamente quando há internet.
+
+Arquivos:
+- index.html: aplicação principal com registro da PWA
+- manifest.webmanifest: nome, cores e ícones da instalação
+- service-worker.js: cache/offline e atualização
+- icons/: ícones Android/iOS e maskable
