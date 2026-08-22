@@ -1,0 +1,26 @@
+DAUTO PROMO - PWA PRONTA PARA GITHUB PAGES
+
+1. Crie um repositorio novo no GitHub.
+2. Envie TODO o conteudo desta pasta para a RAIZ do repositorio, mantendo a pasta icons.
+3. Confira se ficaram exatamente estes caminhos:
+   /index.html
+   /manifest.webmanifest
+   /service-worker.js
+   /icons/icon-192.png
+   /icons/icon-512.png
+   /icons/icon-maskable-512.png
+   /icons/apple-touch-icon.png
+4. No GitHub: Settings > Pages.
+5. Em Build and deployment: Source = Deploy from a branch.
+6. Branch = main e Folder = /(root). Clique Save.
+7. Aguarde o GitHub Pages publicar e abra a URL HTTPS gerada.
+8. IMPORTANTE: teste a URL do GitHub Pages, nao a pagina github.com do repositorio.
+9. No Android/Chrome, o botao “Instalar app” do proprio Dauto Promo usa o prompt nativo quando o navegador o disponibiliza.
+10. No iPhone/Safari, o botao exibe o passo a passo: Compartilhar > Adicionar à Tela de Inicio.
+
+SE VOCE ATUALIZAR O SITE DEPOIS
+- Suba os arquivos novos para o repositorio.
+- O service worker esta configurado para procurar uma versao nova do app.
+- Se estiver testando imediatamente e ainda vir a versao antiga, feche o app/site e abra de novo.
+
+Observacao: o Chrome decide quando o evento de instalacao fica disponivel. Por isso esta versao tambem inclui um botao de instalacao dentro do app e instrucoes de fallback.
